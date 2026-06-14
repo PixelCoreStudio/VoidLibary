@@ -1,5 +1,5 @@
 --[[
-    Customizable UI Library V1
+    Customizable UI Library V1.1
     Original concept by esore aka vaehz - rewritten so the WHOLE design
     can be customized via module.Theme / win(title, themeOverrides) /
     window:SetTheme(...) WITHOUT having to build new UI assets.
@@ -87,10 +87,20 @@ local function create(class, props)
 	return inst
 end
 
+-- Helper to safely unpack strings from passed arguments/tables
+local function checkText(val)
+	if type(val) == "table" then
+		return tostring(val.Name or val.Text or val[1] or "Unknown")
+	end
+	return tostring(val or "")
+end
+
 -- =========================================================================
 -- WINDOW
 -- =========================================================================
 function module:win(title, themeOverrides)
+	title = checkText(title)
+	
 	-- merge default theme + per-window overrides (without touching module.Theme)
 	local theme = {}
 	for k, v in pairs(module.Theme) do
@@ -361,11 +371,13 @@ function module:win(title, themeOverrides)
 				TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
 				{ BackgroundTransparency = 1 }
 			):Play()
-			ts:Create(
-				curIndicator,
-				TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
-				{ BackgroundTransparency = 1 }
-			):Play()
+			if curIndicator then
+				ts:Create(
+					curIndicator,
+					TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+					{ BackgroundTransparency = 1 }
+				):Play()
+			end
 			if curGlow then
 				ts:Create(
 					curGlow,
@@ -375,8 +387,10 @@ function module:win(title, themeOverrides)
 			end
 			curSection.Visible = false
 		end
+		
 		local glow = btn:FindFirstChild("glow")
 		local indicator = btn:FindFirstChild("indicator")
+		
 		ts:Create(
 			btn,
 			TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
@@ -403,6 +417,8 @@ function module:win(title, themeOverrides)
 	-- icon is OPTIONAL: pass nil for a pure text tab (no asset needed),
 	-- or pass any image id/url if you want an icon.
 	function sections:tab(title, icon)
+		title = checkText(title)
+		
 		local btn = create("TextButton", {
 			Parent = tabBar,
 			Size = UDim2.new(1, 0, 0, 32),
@@ -524,6 +540,7 @@ function module:win(title, themeOverrides)
 		local contents = {}
 
 		function contents:label(text)
+			text = checkText(text)
 			local lbl = create("TextLabel", {
 				Parent = section,
 				BackgroundTransparency = 1,
@@ -539,6 +556,7 @@ function module:win(title, themeOverrides)
 		end
 
 		function contents:button(text, cb)
+			text = checkText(text)
 			local btnEl = create("TextButton", {
 				Parent = section,
 				Size = UDim2.new(1, 0, 0, theme.ElementHeight),
@@ -590,6 +608,12 @@ function module:win(title, themeOverrides)
 		end
 
 		function contents:toggle(text, default, cb)
+			text = checkText(text)
+			if type(default) == "function" then
+				cb = default
+				default = false
+			end
+			
 			local toggled = default and true or false
 
 			local holder = create("TextButton", {
@@ -709,17 +733,24 @@ function module:win(title, themeOverrides)
 			holder.MouseButton1Click:Connect(function()
 				toggled = not toggled
 				applyVisual(true)
-				cb(toggled)
+				if cb then cb(toggled) end
 			end)
 
-			if toggled then
+			if toggled and cb then
 				task.defer(cb, toggled)
 			end
 
 			return holder
 		end
 
-		 BerryTextBox = function(text, default, cb)
+		function contents:textbox(text, default, cb)
+			text = checkText(text)
+			if type(default) == "function" then
+				cb = default
+				default = ""
+			end
+			default = checkText(default)
+
 			local holder = create("Frame", {
 				Parent = section,
 				Size = UDim2.new(1, 0, 0, theme.ElementHeight),
@@ -779,7 +810,7 @@ function module:win(title, themeOverrides)
 				):Play()
 			end)
 
-			if default and default ~= "" then
+			if default and default ~= "" and cb then
 				task.defer(cb, default)
 			end
 
@@ -789,16 +820,16 @@ function module:win(title, themeOverrides)
 					TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
 					{ Transparency = theme.StrokeTransparency }
 				):Play()
-				if enterPressed then
+				if enterPressed and cb then
 					cb(input.Text)
 				end
 			end)
 
 			return holder
 		end
-		contents.textbox = BerryTextBox
 
 		function contents:slider(text, min, max, default, cb)
+			text = checkText(text)
 			local holder = create("Frame", {
 				Parent = section,
 				Size = UDim2.new(1, 0, 0, theme.ElementHeight + 14),
