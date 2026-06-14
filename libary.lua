@@ -325,14 +325,18 @@ function module:win(title, themeOverrides)
     local function setSelectedTab(btn, section)
         if curBtn == btn then return end
         if curBtn then
+            local curGlow = curBtn:FindFirstChild("glow")
+            local curIndicator = curBtn:FindFirstChild("indicator")
             ts:Create(curBtn, TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundTransparency = 1}):Play()
-            ts:Create(curBtn.indicator, TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundTransparency = 1}):Play()
-            ts:Create(curBtn.glow, TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Transparency = theme.StrokeTransparency}):Play()
+            ts:Create(curIndicator, TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundTransparency = 1}):Play()
+            ts:Create(curGlow, TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Transparency = theme.StrokeTransparency}):Play()
             curSection.Visible = false
         end
+        local glow = btn:FindFirstChild("glow")
+        local indicator = btn:FindFirstChild("indicator")
         ts:Create(btn, TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundTransparency = theme.ElementHoverTransparency}):Play()
-        ts:Create(btn.indicator, TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundTransparency = 0}):Play()
-        ts:Create(btn.glow, TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Transparency = theme.StrokeHoverTransparency}):Play()
+        ts:Create(indicator, TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundTransparency = 0}):Play()
+        ts:Create(glow, TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Transparency = theme.StrokeHoverTransparency}):Play()
         section.Visible = true
         curBtn, curSection = btn, section
     end
@@ -359,7 +363,6 @@ function module:win(title, themeOverrides)
             ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
         })
         reg(glow, "Color", "Accent")
-        btn.glow = glow
 
         local indicator = create("Frame", {
             Name = "indicator",
