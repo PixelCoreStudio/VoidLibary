@@ -1,347 +1,493 @@
-local Library = {}
+--[[
+    Cyberpunk UI System Refactor (Lua)
+    Design: Minimalist Cyberpunk
+    Colors: Obsidian Black, Velvet Gray, Neon Purple
+    Style: Glassmorphism, Rounded Corners, Fluid Animations
+]]
 
-local DEFAULTS = {
-    WINDOW_WIDTH = 550,
-    WINDOW_HEIGHT = 380,
-    SIDEBAR_WIDTH = 150,
-    BACKGROUND_COLOR = Color3.fromRGB(12, 12, 16), -- Deep Black-Blue
-    ACCENT_COLOR = Color3.fromRGB(6, 182, 212),   -- Cyber-Cyan
-    STROKE_COLOR = Color3.fromRGB(35, 35, 45),     -- Dark Grey/Blue for Stroke
-    CORNER_RADIUS = 12,                            -- Window Radius
-    ELEMENT_CORNER_RADIUS = 8,                     -- Element Radius
+local module = {}
+local ts = cloneref(game:GetService("TweenService"))
+local cg = cloneref(game:GetService("CoreGui"))
+local ui = cloneref(game:GetService("UserInputService"))
+
+-- ========================================
+-- 🎨 CYBERPUNK COLOR PALETTE & STYLING CONSTANTS
+-- ========================================
+local C = {
+    ObsidianBlack = Color3.fromRGB(11, 11, 14), -- Haupt-Hintergrund (Darkest)
+    VelvetGray = Color3.fromRGB(26, 26, 46),   -- Sekundärhintergrund (Cards, Buttons)
+    AccentNeon = Color3.fromRGB(160, 32, 240), -- Primärer Akzent (Purple Highlight)
+    WhitePrimary = Color3.new(1, 1, 1),         -- Weißer Text
+    GraySecondary = Color3.fromRGB(143, 143, 143) -- Aschgrau (Beschreibung/Inaktiv)
 }
 
-local function createFrame(parent, className, properties)
-    local frame = Instance.new("Frame")
-    frame.Name = className or "Frame"
-    if properties then
-        for k, v in pairs(properties) do
-            frame[k] = v
-        end
-    end
-    return frame
-end
+local CORNER_RADIUS = UDim2.new(0, 8)
+local TRANSITION_TIME = 0.25
+local HOVER_DURATION = 0.3
 
--- Helper to apply the aesthetic styling to a Frame
-local function applyAesthetics(frame, isWindow)
-    if frame then
-        frame.BackgroundColor3 = DEFAULTS.BACKGROUND_COLOR
-        frame.BorderSizePixel = 0
-        frame.UIStroke = {
-            Color = DEFAULTS.STROKE_COLOR,
-            Thickness = 1,
-        }
-        if isWindow then
-            frame.UICorner = Instance.new("UICorner")
-            frame.UICorner.CornerRadius = DEFAULTS.CORNER_RADIUS
+-- Helper function to apply corner radius and dark background fill
+local function applyCyberStyle(instance, bgColor)
+    if instance:IsA("Frame") or instance:IsA("TextLabel") then
+        -- Set Corner Radius
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = CORNER_RADIUS
+        corner.Parent = instance
+
+        -- Apply base color (Glassmorphism simulation)
+        instance.BackgroundColor3 = bgColor
+        if instance:FindFirstChildOfClass("Frame") then -- Check if it's a container that needs transparency
+             instance.BackgroundTransparency = 0.1
         else
-            frame.UICorner = Instance.new("UICorner")
-            frame.UICorner.CornerRadius = DEFAULTS.ELEMENT_CORNER_RADIUS
-        end
-    end
-end
-
--- 1. CreateWindow
-function Library.CreateWindow(titleText)
-    local coreGui = game:GetService("CoreGui")
-    local window = createFrame(coreGui, "Window", {
-        Size = UDim2.new(0, DEFAULTS.WINDOW_WIDTH, 0, DEFAULTS.WINDOW_HEIGHT),
-        Position = UDim2.new(0.5, -DEFAULTS.WINDOW_WIDTH / 2, 0.5, -DEFAULTS.WINDOW_HEIGHT / 2),
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundColor3 = DEFAULTS.BACKGROUND_COLOR,
-        Visible = true,
-    })
-
-    applyAesthetics(window, true) -- Apply window aesthetics
-
-    -- Sidebar (Tabs)
-    local sidebar = createFrame(window, "Sidebar")
-    sidebar.Size = UDim2.new(0, DEFAULTS.SIDEBAR_WIDTH, 1, 0)
-    sidebar.Position = UDim2.new(0, 0, 0, 1)
-    sidebar.BackgroundColor3 = Color3.fromRGB(35, 35, 45) -- Slightly different dark shade for contrast
-
-    -- Content Area
-    local contentArea = createFrame(window, "ContentArea")
-    contentArea.Size = UDim2.new(1, -DEFAULTS.SIDEBAR_WIDTH, 1, 0)
-    contentArea.Position = UDim2.new(0, DEFAULTS.SIDEBAR_WIDTH, 0, 0)
-
-    -- Sidebar Tabs setup (simplified for structure)
-    local tabsFrame = createFrame(sidebar, "TabsFrame", {
-        Size = UDim2.new(1, 0, 0, 50),
-        BackgroundColor3 = Color3.fromRGB(35, 35, 45),
-    })
-
-    -- Content Area Layout setup
-    local listLayout = Instance.new("UIListLayout")
-    listLayout.FillDirection = Enum.FillDirection.Vertical
-    listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    contentArea:WaitForChild("UIListLayout").Name = "ListLayout" -- Ensure the layout is in the content area
-
-    -- Placeholder for tab management (will be handled by Window:CreateTab)
-    window:SetSidebar(sidebar, tabsFrame)
-
-    return window
-end
-
--- Helper method to attach sidebar to window (Inferred from requirement 2)
-function Library.CreateWindow:SetSidebar(window, sidebar, tabsFrame)
-    -- In a real implementation, this would manage the actual tab UI elements within the sidebar
-    -- For simplicity here, we just ensure the structure exists.
-end
-
-
--- 2. Window:CreateTab
-function Library.Window:CreateTab(tabName)
-    local window = self -- 'self' refers to the returned Window object
-    if not window or not window:GetSidebar then return nil end
-
-    -- Placeholder for tab UI (e.g., a button in the sidebar)
-    local tabButton = Instance.new("TextButton")
-    tabButton.Name = "TabButton"
-    tabButton.Text = tabName
-    tabButton.Size = UDim2.new(1, 0, 0, 40)
-    tabButton.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-    tabButton.Parent = tabsFrame -- Assuming tabsFrame is accessible or managed by the window object
-
-    -- Placeholder for content (The actual tab content creation would happen here, involving TweenService)
-    local contentFrame = Instance.new("Frame")
-    contentFrame.Name = "TabContent"
-    contentFrame.Size = UDim2.new(1, 0, 1, 0)
-    contentFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-    contentFrame.Parent = window -- Content goes into the main window frame
-
-    -- Implement smooth switching logic (requires TweenService access, assumed available)
-    local tweenService = game:GetService("TweenService")
-
-    -- Simplified logic: switch content based on tabName
-    if tabName == "Default" then
-        contentFrame.Visible = true
-    else
-        contentFrame.Visible = false
-    end
-
-    return {
-        TabButton = tabButton,
-        Content = contentFrame,
-        Window = window -- Return the main window reference for further interaction
-    }
-end
-
-
--- 3. Tab:CreateButton
-function Library.Tab:CreateButton(text, callback)
-    local button = Instance.new("TextButton")
-    button.Text = text
-    button.Size = UDim2.new(1, 0, 0, 40)
-    button.BackgroundColor3 = Color3.fromRGB(50, 50, 60) -- Slightly lighter for base state
-    button.Parent = Instance.new("Frame") -- Parent structure needs definition in actual use case
-
-    local tweenService = game:GetService("TweenService")
-    local originalColor = button.BackgroundColor3
-    local targetColor = Library.DEFAULTS.ACCENT_COLOR
-
-    -- Initial state setup (needs a Frame context for mouse enter)
-    button.MouseEnter:Connect(function()
-        local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
-        local goal = {BackgroundColor3 = targetColor}
-        tweenService:Create(goal, tweenInfo):Play()
-    end)
-
-    button.MouseLeave:Connect(function()
-        local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
-        local goal = {BackgroundColor3 = originalColor}
-        tweenService:Create(goal, tweenInfo):Play()
-    end)
-
-    button.MouseButton1Click:Connect(function()
-        callback()
-    end)
-
-    return button
-end
-
--- 4. Tab:CreateToggle
-function Library.Tab:CreateToggle(text, default, callback)
-    local label = Instance.new("TextLabel")
-    label.Text = text
-    label.Size = UDim2.new(1, 0, 0, 40)
-    label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    label.TextScaled = true
-    label.Font = Enum.Font.SourceSansBold
-    label.Parent = Instance.new("Frame") -- Wrapper for capsule
-
-    local toggleFrame = Instance.new("Frame")
-    toggleFrame.Size = UDim2.new(0, 40, 0, 40)
-    toggleFrame.BackgroundColor3 = Color3.fromRGB(100, 100, 100) -- Default state background
-    toggleFrame.Parent = label
-
-    local toggleCircle = Instance.new("Frame")
-    toggleCircle.Size = UDim2.new(1, 0, 1, 0)
-    toggleCircle.BackgroundColor3 = Color3.fromRGB(255, 255, 255) -- Default state (off/left)
-    toggleCircle.Parent = toggleFrame
-
-    local tweenService = game:GetService("TweenService")
-
-    local function toggle()
-        local currentState = toggleCircle.BackgroundColor3 == Color3.fromRGB(255, 255, 255)
-        local newState = not currentState
-        toggleCircle.BackgroundColor3 = newState and Library.DEFAULTS.ACCENT_COLOR or Color3.fromRGB(100, 100, 100)
-
-        if newState then
-            -- Slide Right (True state)
-            tweenService:Create(toggleCircle, TweenInfo.new(0.3), {Position = UDim2.new(1, -40, 0, 0)}):Play()
-        else
-            -- Slide Left (False state)
-            tweenService:Create(toggleCircle, TweenInfo.new(0.3), {Position = UDim2.new(0, 0, 0, 0)}):Play()
+             instance.BackgroundTransparency = 0.2
         end
 
-        callback(newState)
     end
-
-    label.MouseButton1Click:Connect(toggle)
-
-    return label
 end
 
--- 5. Tab:CreateSlider
-function Library.Tab:CreateSlider(text, min, max, default, callback)
-    local sliderFrame = Instance.new("Frame")
-    sliderFrame.Name = "SliderFrame"
-    sliderFrame.Size = UDim2.new(1, 0, 0, 50)
-    sliderFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-    sliderFrame.Parent = Instance.new("Frame")
+-- ========================================
+-- MAIN WINDOW LOGIC
+-- ========================================
 
-    local sliderBar = Instance.new("Frame")
-    sliderBar.Name = "SliderBar"
-    sliderBar.Size = UDim2.new(1, 0, 1, 0)
-    sliderBar.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-    sliderBar.Parent = sliderFrame
+function module:win(title)
+    local windowAssetId = "rbxassetid://96576283085736"
+    local elementsAssetId = "rbxassetid://83539751566719"
 
-    local handle = Instance.new("Frame")
-    handle.Name = "Handle"
-    handle.Size = UDim2.new(0, 40, 0, 40)
-    handle.BackgroundColor3 = Library.DEFAULTS.ACCENT_COLOR
-    handle.Parent = sliderBar
+    -- NOTE: Assuming the assets are loaded and functional.
+    local window = game:GetObjects(windowAssetId)[1]
+    local elements = game:GetObjects(elementsAssetId)[1]
 
-    local userInputService = game:GetService("UserInputService")
-    local tweenService = game:GetService("TweenService")
+    -- Apply initial cyber style to main containers
+    applyCyberStyle(window, C.ObsidianBlack)
+    applyCyberStyle(window.Frame, C.ObsidianBlack)
+    applyCyberStyle(window.Frame.topbar, C.VelvetGray) -- Topbar is a smaller box
 
-    local function updateSlider(position)
-        local value = math.clamp(position.Scale * (max - min) + min, min, max)
-        local newValue = math.floor(value * 100) / 100 -- Keep precision reasonable
-        handle.Position = UDim2.new(0, newValue * 100, 0, 50) -- Position based on value (assuming the slider is relative to the bar)
-        sliderBar.BackgroundColor3 = Color3.fromRGB(60 + (value / (max - min) * 20), 60, 80) -- Visual feedback
-
-        local displayText = string.format("%s: %.2f", text, value)
-        -- In a real scenario, this would update a TextLabel near the slider
-        print(displayText)
+    -- Set title text color (Assuming the Title object exists within topbar)
+    local titleText = window.Frame.topbar.title
+    if titleText then
+        titleText.TextColor3 = C.WhitePrimary
     end
 
-    local function onInput(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement then
-            local mousePosition = userInputService:GetMouseLocation()
-            -- Calculate position relative to the sliderBar (simplified)
-            local xOffset = math.clamp(mousePosition.X - sliderFrame.AbsolutePosition.X, 0, sliderFrame.AbsoluteSize.X) / sliderFrame.AbsoluteSize.X
-            updateSlider(Vector2.new(xOffset, 1)) -- Passing relative position data
-        end
+    local closeBtn = window.Frame.topbar.btns.Close
+    local miniBtn = window.Frame.topbar.btns.Minimize
+
+    -- Style buttons: Use the secondary background and corner radius
+    applyCyberStyle(closeBtn, C.VelvetGray)
+    applyCyberStyle(miniBtn, C.VelvetGray)
+
+    local toggleCon = nil
+
+    local function fadebtn(btn, isIn)
+        ts:Create(
+            btn,
+            TweenInfo.new(HOVER_DURATION), -- Use the defined hover duration
+            {
+                BackgroundTransparency = isIn and 0.2 or 1, -- Less transparent when active/hovered
+                -- Optional: Add a slight scale up for more pop
+            }
+        ):Play()
     end
 
-    local function onDragEnd()
-        -- Final calculation and callback
-        local finalPos = userInputService:GetMouseLocation()
-        local xOffset = math.clamp(finalPos.X - sliderFrame.AbsolutePosition.X, 0, sliderFrame.AbsoluteSize.X) / sliderFrame.AbsoluteSize.X
-        updateSlider(Vector2.new(xOffset, 1))
-        callback(math.floor(xOffset * (max - min) + min)) -- Pass the final value to callback
+    local function togglewin(isIn)
+        ts:Create(
+            window.Frame,
+            TweenInfo.new(TRANSITION_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            {
+                GroupTransparency = isIn and 0 or 1
+            }
+        ):Play()
+
+        -- Note: Using a fixed scale/size calculation based on original code's intent.
+        local targetSize = isIn and UDim2.new(0.37, 0, 0.407, 0) or UDim2.new(0.37, 0, 0.376, 0)
+        ts:Create(
+            window.Frame,
+            TweenInfo.new(TRANSITION_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            {
+                Size = targetSize
+            }
+        ):Play()
+
+        window.Frame.Interactable = isIn and true or false
     end
 
-    -- Connect input handling for dragging
-    local connection = userInputService.InputChanged:Connect(onInput)
-    local dragConnection = userInputService.InputEnded:Connect(onDragEnd)
+    local function fadetopbar(isIn)
+        ts:Create(
+            window.Frame.topbar,
+            TweenInfo.new(HOVER_DURATION),
+            {
+                BackgroundTransparency = isIn and 0.2 or 0.8 -- Use low transparency for Cyber Look
+            }
+        ):Play()
+    end
 
+    -- Event Connections (unchanged logic)
+    closeBtn.MouseEnter:Connect(function() fadebtn(closeBtn, true) end)
+    miniBtn.MouseEnter:Connect(function() fadebtn(miniBtn, true) end)
+    closeBtn.MouseLeave:Connect(function() fadebtn(closeBtn, false) end)
+    miniBtn.MouseLeave:Connect(function() fadebtn(miniBtn, false) end)
 
-    userInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
-    sliderFrame.Visible = true
+    topbar.MouseEnter:Connect(function() fadetopbar(true) end)
+    topbar.MouseLeave:Connect(function() fadetopbar(false) end)
 
-    -- Simplified drag tracking (needs refinement based on exact implementation context)
-    userInputService.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement and sliderFrame.Visible then
-            local mousePos = userInputService:GetMouseLocation()
-            local x = math.clamp(mousePos.X - sliderFrame.AbsolutePosition.X, 0, sliderFrame.AbsoluteSize.X) / sliderFrame.AbsoluteSize.X
-            handle.Position = UDim2.new(0, x * (max - min) * 100, 0, 50) -- Update handle position
-            sliderBar.BackgroundColor3 = Color3.fromRGB(60 + x * 20, 60, 80)
+    closeBtn.MouseButton1Click:Connect(function()
+        window:Destroy()
+        elements:Destroy()
+        toggleCon:Disconnect()
+    end)
+
+    miniBtn.MouseButton1Click:Connect(function()
+        togglewin(false)
+    end)
+
+    toggleCon = ui.InputBegan:Connect(function(keyc, gamep)
+        if not gamep and keyc.KeyCode == Enum.KeyCode.K then
+            togglewin(not window.Frame.Interactable)
         end
     end)
 
-    userInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 and sliderFrame.Visible then
-            local mousePos = userInputService:GetMouseLocation()
-            local x = math.clamp(mousePos.X - sliderFrame.AbsolutePosition.X, 0, sliderFrame.AbsoluteSize.X) / sliderFrame.AbsoluteSize.X
-            handle.Position = UDim2.new(0, x * (max - min) * 100, 0, 50) -- Final position
-            local value = math.floor(x * (max - min) + min)
-            callback(value)
+    -- Dragging Logic (Unchanged - this is input handling, not style)
+    local sections = {}
+    local curSelected = nil
+
+    local dragging = false
+    local dragInput, mousePos, framePos
+
+    topbar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            mousePos = input.Position
+            framePos = window.Frame.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
         end
     end)
 
-    -- NOTE: Full implementation of smooth dragging is highly dependent on how the parent structure interacts with CoreGui drag logic from source.lua.
-    return sliderFrame
-end
-
--- 6. Tab:CreateDropdown
-function Library.Tab:CreateDropdown(text, optionsList, callback)
-    local button = Instance.new("TextButton")
-    button.Text = text
-    button.Size = UDim2.new(1, 0, 0, 40)
-    button.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-    button.Parent = Instance.new("Frame") -- Wrapper
-
-    local optionsFrame = Instance.new("Frame")
-    optionsFrame.Size = UDim2.new(1, 0, 0, 0)
-    optionsFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-    optionsFrame.Parent = button
-
-    local tweenService = game:GetService("TweenService")
-    local defaultState = false
-
-    button.MouseButton1Click:Connect(function()
-        defaultState = not defaultState
-        local targetSize = defaultState and UDim2.new(1, 0, 0, 100) or UDim2.new(1, 0, 0, 0)
-        local tweenInfo = TweenInfo.new(0.3)
-        tweenService:Create(optionsFrame, tweenInfo, {Size = targetSize}):Play()
+    topbar.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
     end)
 
-    -- Placeholder for option selection logic (omitted complex interaction for brevity and focus on structure)
-    optionsFrame.MouseButton1Click:Connect(function()
-        local selected = true -- Simplified selection
-        callback(selected)
-        tweenService:Create(optionsFrame, TweenInfo.new(0.3), {Size = UDim2.new(1, 0, 0, 0)}):Play()
+    ui.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - mousePos
+            window.Frame.Position = UDim2.new(
+                framePos.X.Scale,
+                framePos.X.Offset + delta.X,
+                framePos.Y.Scale,
+                framePos.Y.Offset + delta.Y
+            )
+        end
     end)
 
-    return button
+    -- ========================================
+    -- TABS AND SECTIONS LOGIC (Updated Styling)
+    -- ========================================
+
+    local function toggletab(tab, isIn)
+        ts:Create(
+            tab,
+            TweenInfo.new(TRANSITION_TIME),
+            {
+                GroupTransparency = isIn and 0 or 1
+            }
+        ):Play()
+        ts:Create(
+            tab,
+            TweenInfo.new(TRANSITION_TIME),
+            {
+                Position = isIn and UDim2.new(0.5, 0, 1, 0) or UDim2.new(0.5, 0, 1.1, 0)
+            }
+        ):Play()
+        tab.Interactable = isIn and true or false
+    end
+
+    local function fadeelement(which, isIn)
+        -- Glow effect simulation: Change background color slightly on hover
+        local targetTransparency = if(isIn then 0.1 else 0.3) -- More visible glow when hovered
+        ts:Create(
+            which,
+            TweenInfo.new(HOVER_DURATION),
+            {
+                BackgroundTransparency = targetTransparency
+            }
+        ):Play()
+    end
+
+    function sections:tab(title, ico)
+        -- 1. CLONE & STYLIZE TAB BUTTON (elements.tabelement)
+        local newBtn = elements.tabelement:Clone()
+        newBtn.Name = title
+        applyCyberStyle(newBtn, C.ObsidianBlack) -- Use Obsidian for the tab background
+
+        -- Style specific internal elements
+        if newBtn:FindFirstChild("title") then
+             local titleObj = newBtn.title
+             titleObj.TextColor3 = C.WhitePrimary
+        end
+
+        newBtn.Image = ico
+        newBtn.title.Text = title
+
+        newBtn.Parent = window.Frame.tabscontainer
+
+        -- 2. CLONE & STYLIZE SECTION CANVAS (elements.sectioncanvas)
+        local newSect = elements.sectioncanvas:Clone()
+        applyCyberStyle(newSect, C.ObsidianBlack) -- Use Obsidian for the section background
+
+        newSect.Parent = window.Frame.sectionsholder
+        newSect.GroupTransparency = 1
+        newSect.Position = UDim2.new(0.5, 0, 1.1, 0)
+        newSect.Interactable = false
+
+        -- Tab Hover Logic
+        local function fadetab(isIn)
+            ts:Create(
+                newBtn,
+                TweenInfo.new(HOVER_DURATION),
+                {ImageTransparency = isIn and 0.25 or 0.5}
+            ):Play()
+            ts:Create(
+                newBtn.title,
+                TweenInfo.new(HOVER_DURATION),
+                {TextColor3 = isIn and C.AccentNeon or C.WhitePrimary} -- Color change on hover
+            ):Play()
+        end
+
+        newBtn.MouseEnter:Connect(function() fadetab(true) end)
+        newBtn.MouseLeave:Connect(function() fadetab(false) end)
+
+        -- Tab Click Logic
+        newBtn.MouseButton1Click:Connect(function()
+            if curSelected == newSect then return end
+            if curSelected ~= nil then
+                toggletab(curSelected, false)
+            end
+
+            toggletab(newSect, true)
+            curSelected = newSect
+        end)
+
+        local contents = {}
+
+        -- --------------------
+        -- CONTENT: LABEL (Static Text)
+        -- --------------------
+        function contents:label(title)
+            local newLabel = elements.LabelElement:Clone()
+            applyCyberStyle(newLabel, C.ObsidianBlack)
+            if newLabel:FindFirstChild("lbl") then
+                 local lblObj = newLabel.lbl
+                 lblObj.TextColor3 = C.WhitePrimary
+                 lblObj.TextXAlignment = Enum.TextXAlignment.Left
+            end
+            newLabel.lbl.Text = title
+            newLabel.Parent = newSect.sectioncontainer
+        end
+
+        -- --------------------
+        -- CONTENT: BUTTON
+        -- --------------------
+        function contents:button(title, cb)
+            local newButton = elements.ButtonElement:Clone()
+            applyCyberStyle(newButton, C.VelvetGray) -- Button background color
+
+            -- Style the inner button element (the clickable part)
+            local btnObj = newButton.btn
+            applyCyberStyle(btnObj, C.ObsidianBlack) -- Inner button is darker for contrast
+
+            if btnObj:FindFirstChild("lbl") then
+                local lblObj = btnObj.lbl
+                lblObj.TextColor3 = C.WhitePrimary
+            end
+
+            newButton.btn.lbl.Text = title
+            newButton.Parent = newSect.sectioncontainer
+
+            -- Hover/Interaction Feedback (Improved Glow)
+            btnObj.MouseEnter:Connect(function() fadeelement(btnObj, true) end)
+            btnObj.MouseLeave:Connect(function() fadeelement(btnObj, false) end)
+
+            newButton.btn.MouseButton1Click:Connect(cb)
+        end
+
+        -- --------------------
+        -- CONTENT: TOGGLE (Switch)
+        -- --------------------
+        function contents:toggle(title, default, cb)
+            local toggled = default
+
+            local newToggle = elements.ToggleElement:Clone()
+            applyCyberStyle(newToggle, C.ObsidianBlack) -- Base container style
+
+            -- Style the internal button wrapper
+            local btnObj = newToggle.btn
+            applyCyberStyle(btnObj, C.VelvetGray) -- Button background color
+
+            if btnObj:FindFirstChild("lbl") then
+                btnObj.lbl.TextColor3 = C.WhitePrimary
+            end
+
+            newToggle.btn.lbl.Text = title
+            newToggle.Parent = newSect.sectioncontainer
+
+            -- Style the slide element (the visual switch)
+            local togglebg = newToggle.btn.togglebg
+            local sidetog = togglebg.Frame
+            applyCyberStyle(sidetog, C.AccentNeon) -- The active part should be Neon Purple
+
+            if toggled then
+                -- Initial positioning for 'On' state
+                togglebg.BackgroundColor3 = C.AccentNeon -- Use solid color for the "on" fill
+                sidetog.AnchorPoint = Vector2.new(1, 0.5)
+                sidetog.Position = UDim2.new(1, 0, 0.5, 0)
+                task.defer(cb, toggled)
+            end
+
+            local function setToggleVisuals(is_on)
+                 if is_on then
+                     togglebg.BackgroundColor3 = C.AccentNeon
+                     sidetog.AnchorPoint = Vector2.new(1, 0.5)
+                     sidetog.Position = UDim2.new(1, 0, 0.5, 0)
+                 else
+                     togglebg.BackgroundColor3 = Color3.fromRGB(74, 255, 89):Lerp(C.ObsidianBlack, 0.5) -- Muted red/off color
+                     sidetog.AnchorPoint = Vector2.new(0, 0.5)
+                     sidetog.Position = UDim2.new(0, 0, 0.5, 0)
+                 end
+            end
+
+            -- Toggle Click Logic
+            newToggle.btn.MouseButton1Click:Connect(function()
+                toggled = not toggled
+                setToggleVisuals(toggled) -- Apply the new visual state
+
+                ts:Create(
+                    sidetog,
+                    TweenInfo.new(0.15),
+                    {AnchorPoint = Vector2.new(1,0.5)} -- Target anchor point for 'On'
+                ):Play()
+
+                ts:Create(
+                    sidetog,
+                    TweenInfo.new(0.15),
+                    {Position = UDim2.new(1, 0, 0.5, 0)}
+                ):Play()
+
+                -- NOTE: Simplified visual logic here; assumes the initial setToggleVisuals handles color changes
+                cb(toggled)
+            end)
+        end
+
+        -- --------------------
+        -- CONTENT: TEXTBOX (Input Field)
+        -- --------------------
+        function contents:textbox(title, default, cb)
+            local newtb = elements.TextboxElement:Clone()
+            applyCyberStyle(newtb, C.ObsidianBlack) -- Dark base for the box
+
+            if newtb:FindFirstChild("frame") then
+                applyCyberStyle(newtb.frame, C.VelvetGray) -- Slightly lighter background for the input area
+
+                -- Title styling
+                if newtb.frame:FindFirstChild("lbl") then
+                    local lblObj = newtb.frame.lbl
+                    lblObj.TextColor3 = C.WhitePrimary
+                end
+
+                local inp = newtb.frame.inp.lbl -- This is the actual editable text element
+                applyCyberStyle(newtb.frame.inp, C.ObsidianBlack)
+
+                -- Focus/Cursor Styling Simulation:
+                -- The cursor should visually glow when focused (hard to do purely in Lua, but we style the box)
+                inp.TextColor3 = C.WhitePrimary
+
+                -- Input Value Setup
+                inp.Text = default
+
+                if default ~= "" then
+                    task.defer(cb, default)
+                end
+
+                -- Focus Lost (Value update)
+                inp.FocusLost:Connect(function(ep)
+                    if ep then
+                        cb(inp.Text)
+                    end
+                end)
+            end
+        end
+
+        -- --------------------
+        -- CONTENT: SLIDER
+        -- --------------------
+        function contents:slider(title, min, max, default, cb)
+            local newsl = elements.SliderElement:Clone()
+            applyCyberStyle(newsl, C.ObsidianBlack) -- Dark base for the slider element
+
+            if newsl:FindFirstChild("lbl") then
+                local lblObj = newsl.lbl
+                lblObj.TextColor3 = C.WhitePrimary
+            end
+
+            -- Style the clickable button area
+            local slbtn = newsl.btn
+            applyCyberStyle(slbtn, C.VelvetGray) -- The track background
+
+            -- Style the progress bar (The Neon element)
+            local prog = slbtn.prog
+            applyCyberStyle(prog, C.AccentNeon) -- PROGRESS BAR IS NEON ACCENT!
+
+            local lastval = 0
+            local dragging = false
+
+            -- Utility Functions (Unchanged Logic)
+            local function setFromAlpha(alpha)
+                alpha = math.clamp(alpha, 0, 1)
+                local value = math.floor(min + (max - min) * alpha + 0.5)
+                prog.Size = UDim2.new(alpha, 0, 1, 0)
+                lastval = value
+            end
+
+            local function updateFromInput(x)
+                -- Calculate ratio based on screen position relative to the slider button size
+                local rel = (x - slbtn.AbsolutePosition.X) / slbtn.AbsoluteSize.X
+                setFromAlpha(rel)
+            end
+
+            setFromAlpha((default - min) / (max - min))
+
+            -- Input Handling (Unchanged Logic)
+            slbtn.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = true
+                    updateFromInput(input.Position.X)
+                end
+            end)
+
+            ui.InputChanged:Connect(function(input)
+                if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                    updateFromInput(input.Position.X)
+                end
+            end)
+
+            ui.InputEnded:Connect(function(input)
+                if dragging and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+                    dragging = false
+                    if cb then
+                        newsl.lbl.Text = title .. " : " .. tostring(lastval)
+                        pcall(cb, lastval)
+                    end
+                end
+            end)
+        end
+
+        return contents
+    end
+
+    return sections
 end
 
-
--- 7. Tab:CreateTextBox
-function Library.Tab:CreateTextBox(text, placeholder, callback)
-    local inputField = Instance.new("TextBox")
-    inputField.Text = text
-    inputField.PlaceholderText = placeholder
-    inputField.Size = UDim2.new(1, 0, 0, 40)
-    inputField.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-    inputField.Parent = Instance.new("Frame")
-
-    local inputService = game:GetService("UserInputService")
-
-    inputField.FocusLost:Connect(function()
-        callback(inputField.Text)
-    end)
-
-    return inputField
-end
-
-
--- Expose the main functions (if not handled by caller structure)
-Library.CreateWindow = Library.CreateWindow
-Library.Window = Library.Window
-Library.Tab = Library.Tab
+return module
